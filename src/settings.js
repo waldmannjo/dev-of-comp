@@ -6,6 +6,9 @@ export const DEFAULTS = {
   compactMode: false,
   opacity: 0.92,
   hotkey: "F2",
+  advisorVisible: true,
+  advisorMinimized: false,
+  advisorHotkey: "F3",
 };
 
 export function loadSettings() {
