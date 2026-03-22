@@ -21,6 +21,7 @@ const MAX_CONSECUTIVE_ERRORS = 10;
 let intervalId = null;
 const history = new TroopHistory(120);
 let consecutiveErrors = 0;
+let cachedHotkey = "F2";
 
 function waitForGame() {
   return new Promise((resolve) => {
@@ -99,8 +100,7 @@ function startLoop() {
 }
 
 function handleHotkey(e) {
-  const settings = loadSettings();
-  if (e.key === settings.hotkey) {
+  if (e.key === cachedHotkey) {
     toggleMinimize();
     e.preventDefault();
   }
@@ -112,6 +112,7 @@ async function init() {
   console.log("[OF-Companion] Game detected, initializing.");
 
   const settings = loadSettings();
+  cachedHotkey = settings.hotkey;
   createOverlay(settings);
   document.addEventListener("keydown", handleHotkey);
   startLoop();

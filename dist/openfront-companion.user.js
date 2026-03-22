@@ -47,10 +47,8 @@
       "control-panel .border-orange-400 span.tabular-nums"
     ],
     goldBadge: "control-panel .border-yellow-400 span.tabular-nums",
-    troopBarGreen: "control-panel .bg-sky-700",
     troopBarOrange: "control-panel .bg-sky-600",
-    attackSlider: 'control-panel input[type="range"]',
-    attackLabel: "control-panel .border-gray-600 span"
+    attackSlider: 'control-panel input[type="range"]'
   };
   function queryFirst(selectors) {
     const arr = Array.isArray(selectors) ? selectors : [selectors];
@@ -92,7 +90,7 @@
     const panel = document.querySelector(SELECTORS.controlPanel);
     if (!panel) return null;
     const outerDiv = panel.querySelector(":scope > div");
-    if (!outerDiv || outerDiv.classList.contains("hidden")) return null;
+    if (!outerDiv) return null;
     const troops = parseTroopsFromBar();
     if (!troops) return null;
     const rateEl = queryFirst(SELECTORS.troopRateBadge);
@@ -223,6 +221,37 @@
       this.entries = [];
     }
   };
+
+  // src/settings.js
+  var DEFAULTS = {
+    minimized: false,
+    showChart: true,
+    compactMode: false,
+    opacity: 0.92,
+    hotkey: "F2"
+  };
+  function loadSettings() {
+    const settings = { ...DEFAULTS };
+    for (const [key, defaultVal] of Object.entries(DEFAULTS)) {
+      try {
+        const stored = typeof GM_getValue === "function" ? GM_getValue("ofc_" + key, defaultVal) : JSON.parse(localStorage.getItem("ofc_" + key) ?? "null") ?? defaultVal;
+        settings[key] = stored;
+      } catch {
+        settings[key] = defaultVal;
+      }
+    }
+    return settings;
+  }
+  function saveSetting(key, value) {
+    try {
+      if (typeof GM_setValue === "function") {
+        GM_setValue("ofc_" + key, value);
+      } else {
+        localStorage.setItem("ofc_" + key, JSON.stringify(value));
+      }
+    } catch {
+    }
+  }
 
   // src/renderer.js
   var PANEL_ID = "ofc-companion-panel";
@@ -456,6 +485,8 @@
   function toggleMinimize() {
     isMinimized = !isMinimized;
     applyMinimized();
+    saveSetting("minimized", isMinimized);
+    return isMinimized;
   }
   function applyMinimized() {
     if (!panelEl) return;
@@ -470,33 +501,13 @@
     if (panelEl) panelEl.classList.toggle("ofc-hidden", !visible);
   }
 
-  // src/settings.js
-  var DEFAULTS = {
-    minimized: false,
-    showChart: true,
-    compactMode: false,
-    opacity: 0.92,
-    hotkey: "F2"
-  };
-  function loadSettings() {
-    const settings = { ...DEFAULTS };
-    for (const [key, defaultVal] of Object.entries(DEFAULTS)) {
-      try {
-        const stored = typeof GM_getValue === "function" ? GM_getValue("ofc_" + key, defaultVal) : JSON.parse(localStorage.getItem("ofc_" + key) ?? "null") ?? defaultVal;
-        settings[key] = stored;
-      } catch {
-        settings[key] = defaultVal;
-      }
-    }
-    return settings;
-  }
-
   // src/main.js
   var POLL_INTERVAL = 500;
   var MAX_CONSECUTIVE_ERRORS = 10;
   var intervalId = null;
   var history = new TroopHistory(120);
   var consecutiveErrors = 0;
+  var cachedHotkey = "F2";
   function waitForGame() {
     return new Promise((resolve) => {
       if (document.querySelector("control-panel")) {
@@ -561,8 +572,7 @@
     console.log("[OF-Companion] Started polling every " + POLL_INTERVAL + "ms");
   }
   function handleHotkey(e) {
-    const settings = loadSettings();
-    if (e.key === settings.hotkey) {
+    if (e.key === cachedHotkey) {
       toggleMinimize();
       e.preventDefault();
     }
@@ -572,6 +582,7 @@
     await waitForGame();
     console.log("[OF-Companion] Game detected, initializing.");
     const settings = loadSettings();
+    cachedHotkey = settings.hotkey;
     createOverlay(settings);
     document.addEventListener("keydown", handleHotkey);
     startLoop();

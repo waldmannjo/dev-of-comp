@@ -8,10 +8,8 @@ const SELECTORS = {
     "control-panel .border-orange-400 span.tabular-nums",
   ],
   goldBadge: "control-panel .border-yellow-400 span.tabular-nums",
-  troopBarGreen: "control-panel .bg-sky-700",
   troopBarOrange: "control-panel .bg-sky-600",
   attackSlider: 'control-panel input[type="range"]',
-  attackLabel: "control-panel .border-gray-600 span",
 };
 
 function queryFirst(selectors) {
@@ -56,8 +54,10 @@ export function readGameState() {
   const panel = document.querySelector(SELECTORS.controlPanel);
   if (!panel) return null;
 
+  // Check if control panel has visible content (don't check for "hidden" class
+  // because Tailwind's "hidden lg:block" contains "hidden" even when visible on desktop)
   const outerDiv = panel.querySelector(":scope > div");
-  if (!outerDiv || outerDiv.classList.contains("hidden")) return null;
+  if (!outerDiv) return null;
 
   const troops = parseTroopsFromBar();
   if (!troops) return null;

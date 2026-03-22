@@ -1,5 +1,6 @@
 // src/renderer.js
 import { getRatioColor } from "./calculator.js";
+import { saveSetting } from "./settings.js";
 
 const PANEL_ID = "ofc-companion-panel";
 
@@ -269,6 +270,8 @@ function formatDisplayNumber(n) {
 export function toggleMinimize() {
   isMinimized = !isMinimized;
   applyMinimized();
+  saveSetting("minimized", isMinimized);
+  return isMinimized;
 }
 
 function applyMinimized() {
