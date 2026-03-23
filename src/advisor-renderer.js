@@ -223,7 +223,8 @@ export function updateAdvisorPanel(result) {
     nameSpan.style.color = target.ratingColor;
     row.appendChild(nameSpan);
     row.appendChild(el("span", "ofc-adv-row-troops",
-      fmt(target.troops) + "/" + fmt(target.maxTroops)));
+      fmt(target.troops) + "/" + fmt(target.maxTroops)
+      + "  " + target.attackRatio + "%"));
     const ratingSpan = el("span", "ofc-adv-row-rating", target.rating);
     ratingSpan.style.color = target.ratingColor;
     row.appendChild(ratingSpan);

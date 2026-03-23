@@ -921,7 +921,7 @@
       row.appendChild(el2(
         "span",
         "ofc-adv-row-troops",
-        fmt(target.troops) + "/" + fmt(target.maxTroops)
+        fmt(target.troops) + "/" + fmt(target.maxTroops) + "  " + target.attackRatio + "%"
       ));
       const ratingSpan = el2("span", "ofc-adv-row-rating", target.rating);
       ratingSpan.style.color = target.ratingColor;
