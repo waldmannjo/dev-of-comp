@@ -36,19 +36,19 @@ describe("_extractPlayerData", () => {
     const player = {
       displayName: () => "TestBot",
       type: () => "Bot",
-      troops: () => 12000,
+      troops: () => 120000,        // internal units (display × 10)
       numTilesOwned: () => 5000,
       gold: () => 250000,
       totalUnitLevels: (type) => {
         const map = { City: 2, Factory: 1, Port: 1, "Missile Silo": 0, "SAM Launcher": 0 };
         return map[type] ?? 0;
       },
-      outgoingAttacks: () => [{ troops: 3000, retreating: false }],
+      outgoingAttacks: () => [{ troops: 30000, retreating: false }], // internal units
       incomingAttacks: () => [],
       isFriendly: () => false,
       isAlive: () => true,
     };
-    const config = { maxTroops: () => 45000 };
+    const config = { maxTroops: () => 450000 }; // internal units
     const game = {
       config: () => config,
       numLandTiles: () => 100000,
@@ -57,14 +57,14 @@ describe("_extractPlayerData", () => {
     const data = _extractPlayerData(player, myPlayer, game);
 
     expect(data.name).toBe("TestBot");
-    expect(data.troops).toBe(12000);
-    expect(data.maxTroops).toBe(45000);
+    expect(data.troops).toBe(12000);       // display units
+    expect(data.maxTroops).toBe(45000);    // display units
     expect(data.troopRatio).toBeCloseTo(12000 / 45000);
     expect(data.territory).toBe(5000);
     expect(data.territoryPercent).toBeCloseTo(5);
     expect(data.gold).toBe(250000);
     expect(data.buildings.cities).toBe(2);
-    expect(data.outgoingAttacks).toBe(3000);
+    expect(data.outgoingAttacks).toBe(3000);  // display units
     expect(data.incomingAttacks).toBe(0);
     expect(data.isFriendly).toBe(false);
     expect(data.isAlive).toBe(true);

@@ -64,9 +64,12 @@ export function getPlayerData(player) {
 // The game API may return BigInt for numeric values — coerce to Number at the boundary.
 function num(v) { return typeof v === "bigint" ? Number(v) : (v ?? 0); }
 
+// The game API uses internal units = display units × 10 for troops/maxTroops.
+const TROOP_SCALE = 10;
+
 export function _extractPlayerData(player, myPlayer, game) {
-  const troops = num(player.troops());
-  const maxTroops = num(game.config().maxTroops(player));
+  const troops = num(player.troops()) / TROOP_SCALE;
+  const maxTroops = num(game.config().maxTroops(player)) / TROOP_SCALE;
   const territory = num(player.numTilesOwned());
   const totalLand = num(game.numLandTiles());
 
@@ -86,8 +89,8 @@ export function _extractPlayerData(player, myPlayer, game) {
       silos: num(player.totalUnitLevels(UNIT_TYPES.MissileSilo)),
       sams: num(player.totalUnitLevels(UNIT_TYPES.SAMLauncher)),
     },
-    outgoingAttacks: _sumAttacks(player.outgoingAttacks()),
-    incomingAttacks: _sumAttacks(player.incomingAttacks()),
+    outgoingAttacks: _sumAttacks(player.outgoingAttacks()) / TROOP_SCALE,
+    incomingAttacks: _sumAttacks(player.incomingAttacks()) / TROOP_SCALE,
     isFriendly: player.isFriendly(myPlayer),
     isAlive: player.isAlive(),
   };

@@ -563,9 +563,10 @@
   function num(v) {
     return typeof v === "bigint" ? Number(v) : v ?? 0;
   }
+  var TROOP_SCALE = 10;
   function _extractPlayerData(player, myPlayer, game) {
-    const troops = num(player.troops());
-    const maxTroops = num(game.config().maxTroops(player));
+    const troops = num(player.troops()) / TROOP_SCALE;
+    const maxTroops = num(game.config().maxTroops(player)) / TROOP_SCALE;
     const territory = num(player.numTilesOwned());
     const totalLand = num(game.numLandTiles());
     return {
@@ -584,8 +585,8 @@
         silos: num(player.totalUnitLevels(UNIT_TYPES.MissileSilo)),
         sams: num(player.totalUnitLevels(UNIT_TYPES.SAMLauncher))
       },
-      outgoingAttacks: _sumAttacks(player.outgoingAttacks()),
-      incomingAttacks: _sumAttacks(player.incomingAttacks()),
+      outgoingAttacks: _sumAttacks(player.outgoingAttacks()) / TROOP_SCALE,
+      incomingAttacks: _sumAttacks(player.incomingAttacks()) / TROOP_SCALE,
       isFriendly: player.isFriendly(myPlayer),
       isAlive: player.isAlive()
     };
@@ -1069,8 +1070,8 @@
       return;
     }
     try {
-      const myTroops = Number(me.troops());
-      const myMaxTroops = Number(game.config().maxTroops(me));
+      const myTroops = Number(me.troops()) / 10;
+      const myMaxTroops = Number(game.config().maxTroops(me)) / 10;
       const myData = { troops: myTroops, maxTroops: myMaxTroops };
       const neighbors = await getBorderingPlayers();
       const enemyDataList = neighbors.map((p) => getPlayerData(p)).filter((d) => d !== null);
