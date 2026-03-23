@@ -1,1 +1,5 @@
 node_modules/
+OpenFrontIO/
+.superpowers/
+docs/superpowers/
+*.Zone.Identifier
