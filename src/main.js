@@ -14,6 +14,20 @@ import {
   toggleMinimize,
 } from "./renderer.js";
 import { loadSettings } from "./settings.js";
+import {
+  getGameView,
+  getMyPlayer,
+  getPlayerData,
+  getBorderingPlayers,
+  invalidateBorderCache,
+} from "./game-api.js";
+import { getAdvisorData } from "./attack-advisor.js";
+import {
+  createAdvisorPanel,
+  updateAdvisorPanel,
+  setAdvisorVisible,
+  toggleAdvisorMinimize,
+} from "./advisor-renderer.js";
 
 const POLL_INTERVAL = 500;
 const MAX_CONSECUTIVE_ERRORS = 10;
@@ -22,6 +36,13 @@ let intervalId = null;
 const history = new TroopHistory(120);
 let consecutiveErrors = 0;
 let cachedHotkey = "F2";
+let advisorIntervalId = null;
+let cachedAdvisorHotkey = "F3";
+let lastAdvisorTroops = 0;
+let consecutiveAdvisorErrors = 0;
+const ADVISOR_INTERVAL = 3000;
+const ADVISOR_MAX_ERRORS = 5;
+const TROOP_CHANGE_THRESHOLD = 0.10;
 
 function waitForGame() {
   return new Promise((resolve) => {
@@ -91,6 +112,63 @@ function tick() {
   history.push(state.currentTroops, state.maxTroops, Date.now());
   const stats = calculateStats(state);
   updateOverlay(stats);
+  checkTroopChange(state.currentTroops);
+}
+
+async function advisorTick() {
+  const game = getGameView();
+  if (!game) {
+    setAdvisorVisible(false);
+    return;
+  }
+
+  const me = getMyPlayer();
+  if (!me) {
+    setAdvisorVisible(false);
+    return;
+  }
+
+  setAdvisorVisible(true);
+
+  try {
+    // Read own data directly — avoid routing through getPlayerData
+    // which calls isFriendly(myPlayer) on self (undefined behavior)
+    const myTroops = me.troops();
+    const myMaxTroops = game.config().maxTroops(me);
+    const myData = { troops: myTroops, maxTroops: myMaxTroops };
+
+    const neighbors = await getBorderingPlayers();
+    const enemyDataList = neighbors
+      .map(p => getPlayerData(p))
+      .filter(d => d !== null);
+
+    const result = getAdvisorData(myData, enemyDataList);
+    updateAdvisorPanel(result);
+    lastAdvisorTroops = myTroops;
+    consecutiveAdvisorErrors = 0;
+  } catch (e) {
+    consecutiveAdvisorErrors++;
+    if (consecutiveAdvisorErrors > ADVISOR_MAX_ERRORS) {
+      setAdvisorVisible(false);
+      console.warn("[OF-Companion] Advisor: too many errors, hiding panel.");
+    }
+  }
+}
+
+function startAdvisorLoop() {
+  if (advisorIntervalId) return;
+  advisorTick();
+  advisorIntervalId = setInterval(advisorTick, ADVISOR_INTERVAL);
+  console.log("[OF-Companion] Advisor started, polling every " + ADVISOR_INTERVAL + "ms");
+}
+
+function checkTroopChange(currentTroops) {
+  if (lastAdvisorTroops === 0) return;
+  const change = Math.abs(currentTroops - lastAdvisorTroops) / lastAdvisorTroops;
+  if (change >= TROOP_CHANGE_THRESHOLD) {
+    invalidateBorderCache();
+    advisorTick();
+  }
 }
 
 function startLoop() {
@@ -102,6 +180,10 @@ function startLoop() {
 function handleHotkey(e) {
   if (e.key === cachedHotkey) {
     toggleMinimize();
+    e.preventDefault();
+  }
+  if (e.key === cachedAdvisorHotkey) {
+    toggleAdvisorMinimize();
     e.preventDefault();
   }
 }
@@ -116,6 +198,14 @@ async function init() {
   createOverlay(settings);
   document.addEventListener("keydown", handleHotkey);
   startLoop();
+  cachedAdvisorHotkey = settings.advisorHotkey;
+  const game = getGameView();
+  if (game) {
+    createAdvisorPanel(settings);
+    startAdvisorLoop();
+  } else {
+    console.log("[OF-Companion] GameView not available, advisor disabled.");
+  }
 }
 
 init().catch((err) => console.error("[OF-Companion] Init failed:", err));
