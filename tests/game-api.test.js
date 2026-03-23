@@ -3,6 +3,8 @@ import { describe, test, expect } from "vitest";
 import {
   _extractPlayerData,
   _sumAttacks,
+  getGameView,
+  resetGameViewCache,
 } from "../src/game-api.js";
 
 describe("_sumAttacks", () => {
@@ -38,7 +40,7 @@ describe("_extractPlayerData", () => {
       numTilesOwned: () => 5000,
       gold: () => 250000,
       totalUnitLevels: (type) => {
-        const map = { City: 2, Factory: 1, Port: 1, MissileSilo: 0, SAMLauncher: 0 };
+        const map = { City: 2, Factory: 1, Port: 1, "Missile Silo": 0, "SAM Launcher": 0 };
         return map[type] ?? 0;
       },
       outgoingAttacks: () => [{ troops: 3000, retreating: false }],
@@ -66,5 +68,28 @@ describe("_extractPlayerData", () => {
     expect(data.incomingAttacks).toBe(0);
     expect(data.isFriendly).toBe(false);
     expect(data.isAlive).toBe(true);
+  });
+});
+
+describe("getGameView", () => {
+  test("reads the game object from the page context document", () => {
+    const game = { myPlayer: () => null };
+    const pageElement = { game };
+
+    global.document = {
+      querySelector: () => null,
+    };
+    global.unsafeWindow = {
+      document: {
+        querySelector: () => pageElement,
+      },
+    };
+
+    resetGameViewCache();
+    expect(getGameView()).toBe(game);
+
+    delete global.document;
+    delete global.unsafeWindow;
+    resetGameViewCache();
   });
 });

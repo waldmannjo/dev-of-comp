@@ -40,6 +40,7 @@ let advisorIntervalId = null;
 let cachedAdvisorHotkey = "F3";
 let lastAdvisorTroops = 0;
 let consecutiveAdvisorErrors = 0;
+let consecutiveAdvisorUnavailable = 0;
 const ADVISOR_INTERVAL = 3000;
 const ADVISOR_MAX_ERRORS = 5;
 const TROOP_CHANGE_THRESHOLD = 0.10;
@@ -118,17 +119,21 @@ function tick() {
 async function advisorTick() {
   const game = getGameView();
   if (!game) {
-    setAdvisorVisible(false);
+    consecutiveAdvisorUnavailable++;
+    if (consecutiveAdvisorUnavailable > ADVISOR_MAX_ERRORS) {
+      setAdvisorVisible(false);
+    }
     return;
   }
 
   const me = getMyPlayer();
   if (!me) {
-    setAdvisorVisible(false);
+    consecutiveAdvisorUnavailable++;
+    if (consecutiveAdvisorUnavailable > ADVISOR_MAX_ERRORS) {
+      setAdvisorVisible(false);
+    }
     return;
   }
-
-  setAdvisorVisible(true);
 
   try {
     // Read own data directly — avoid routing through getPlayerData
@@ -144,10 +149,13 @@ async function advisorTick() {
 
     const result = getAdvisorData(myData, enemyDataList);
     updateAdvisorPanel(result);
+    setAdvisorVisible(true);
     lastAdvisorTroops = myTroops;
     consecutiveAdvisorErrors = 0;
+    consecutiveAdvisorUnavailable = 0;
   } catch (e) {
     consecutiveAdvisorErrors++;
+    console.warn("[OF-Companion] Advisor tick error (" + consecutiveAdvisorErrors + "):", e);
     if (consecutiveAdvisorErrors > ADVISOR_MAX_ERRORS) {
       setAdvisorVisible(false);
       console.warn("[OF-Companion] Advisor: too many errors, hiding panel.");
@@ -159,7 +167,6 @@ function waitForGameView(settings) {
   const game = getGameView();
   if (game) {
     console.log("[OF-Companion] GameView found, starting advisor.");
-    createAdvisorPanel(settings);
     startAdvisorLoop();
     return;
   }
@@ -174,7 +181,6 @@ function waitForGameView(settings) {
     if (g) {
       clearInterval(poll);
       console.log("[OF-Companion] GameView found after " + attempts + "s, starting advisor.");
-      createAdvisorPanel(settings);
       startAdvisorLoop();
     } else if (attempts >= maxAttempts) {
       clearInterval(poll);
@@ -224,6 +230,8 @@ async function init() {
   const settings = loadSettings();
   cachedHotkey = settings.hotkey;
   createOverlay(settings);
+  createAdvisorPanel(settings);
+  setAdvisorVisible(settings.advisorVisible !== false);
   document.addEventListener("keydown", handleHotkey);
   startLoop();
   cachedAdvisorHotkey = settings.advisorHotkey;

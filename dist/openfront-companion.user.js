@@ -10,6 +10,7 @@
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        unsafeWindow
 // @run-at       document-idle
 // @license      MIT
 // ==/UserScript==
@@ -515,19 +516,46 @@
     City: "City",
     Factory: "Factory",
     Port: "Port",
-    MissileSilo: "MissileSilo",
-    SAMLauncher: "SAMLauncher"
+    MissileSilo: "Missile Silo",
+    SAMLauncher: "SAM Launcher"
   };
+  function getCandidateDocuments() {
+    const docs = [];
+    if (typeof document !== "undefined") {
+      docs.push(document);
+    }
+    try {
+      if (typeof unsafeWindow !== "undefined" && unsafeWindow && unsafeWindow.document && unsafeWindow.document !== document) {
+        docs.push(unsafeWindow.document);
+      }
+    } catch {
+    }
+    return docs;
+  }
+  function getElementGame(el3) {
+    if (!el3) return null;
+    try {
+      if (el3.game) return el3.game;
+    } catch {
+    }
+    try {
+      if (el3.wrappedJSObject?.game) return el3.wrappedJSObject.game;
+    } catch {
+    }
+    return null;
+  }
   function getGameView() {
     if (cachedGameView) return cachedGameView;
-    for (const sel of GAME_ELEMENT_SELECTORS) {
-      try {
-        const el3 = document.querySelector(sel);
-        if (el3 && el3.game) {
-          cachedGameView = el3.game;
-          return cachedGameView;
+    for (const root of getCandidateDocuments()) {
+      for (const sel of GAME_ELEMENT_SELECTORS) {
+        try {
+          const game = getElementGame(root.querySelector(sel));
+          if (game) {
+            cachedGameView = game;
+            return cachedGameView;
+          }
+        } catch {
         }
-      } catch {
       }
     }
     return null;
@@ -848,6 +876,7 @@
     root.appendChild(header);
     const body = el2("div", "ofc-adv-body");
     body.dataset.field = "advisor-body";
+    body.appendChild(el2("div", "ofc-adv-empty", "Waiting for game data..."));
     root.appendChild(body);
     const minView = el2("div", "ofc-adv-minimized");
     minView.dataset.field = "advisor-min";
@@ -986,6 +1015,7 @@
   var cachedAdvisorHotkey = "F3";
   var lastAdvisorTroops = 0;
   var consecutiveAdvisorErrors = 0;
+  var consecutiveAdvisorUnavailable = 0;
   var ADVISOR_INTERVAL = 3e3;
   var ADVISOR_MAX_ERRORS = 5;
   var TROOP_CHANGE_THRESHOLD = 0.1;
@@ -1051,15 +1081,20 @@
   async function advisorTick() {
     const game = getGameView();
     if (!game) {
-      setAdvisorVisible(false);
+      consecutiveAdvisorUnavailable++;
+      if (consecutiveAdvisorUnavailable > ADVISOR_MAX_ERRORS) {
+        setAdvisorVisible(false);
+      }
       return;
     }
     const me = getMyPlayer();
     if (!me) {
-      setAdvisorVisible(false);
+      consecutiveAdvisorUnavailable++;
+      if (consecutiveAdvisorUnavailable > ADVISOR_MAX_ERRORS) {
+        setAdvisorVisible(false);
+      }
       return;
     }
-    setAdvisorVisible(true);
     try {
       const myTroops = me.troops();
       const myMaxTroops = game.config().maxTroops(me);
@@ -1068,10 +1103,13 @@
       const enemyDataList = neighbors.map((p) => getPlayerData(p)).filter((d) => d !== null);
       const result = getAdvisorData(myData, enemyDataList);
       updateAdvisorPanel(result);
+      setAdvisorVisible(true);
       lastAdvisorTroops = myTroops;
       consecutiveAdvisorErrors = 0;
+      consecutiveAdvisorUnavailable = 0;
     } catch (e) {
       consecutiveAdvisorErrors++;
+      console.warn("[OF-Companion] Advisor tick error (" + consecutiveAdvisorErrors + "):", e);
       if (consecutiveAdvisorErrors > ADVISOR_MAX_ERRORS) {
         setAdvisorVisible(false);
         console.warn("[OF-Companion] Advisor: too many errors, hiding panel.");
@@ -1082,7 +1120,6 @@
     const game = getGameView();
     if (game) {
       console.log("[OF-Companion] GameView found, starting advisor.");
-      createAdvisorPanel(settings);
       startAdvisorLoop();
       return;
     }
@@ -1094,7 +1131,6 @@
       if (g) {
         clearInterval(poll);
         console.log("[OF-Companion] GameView found after " + attempts + "s, starting advisor.");
-        createAdvisorPanel(settings);
         startAdvisorLoop();
       } else if (attempts >= maxAttempts) {
         clearInterval(poll);
@@ -1138,6 +1174,8 @@
     const settings = loadSettings();
     cachedHotkey = settings.hotkey;
     createOverlay(settings);
+    createAdvisorPanel(settings);
+    setAdvisorVisible(settings.advisorVisible !== false);
     document.addEventListener("keydown", handleHotkey);
     startLoop();
     cachedAdvisorHotkey = settings.advisorHotkey;
