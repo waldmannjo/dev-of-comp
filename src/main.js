@@ -163,30 +163,19 @@ async function advisorTick() {
   }
 }
 
-function waitForGameView(settings) {
-  const game = getGameView();
-  if (game) {
-    console.log("[OF-Companion] GameView found, starting advisor.");
-    startAdvisorLoop();
-    return;
-  }
-  // GameView not ready yet — the .game property is assigned after the renderer
-  // initializes, which can be after the control-panel element exists in DOM.
-  // Poll every 1s for up to 30s.
-  let attempts = 0;
-  const maxAttempts = 30;
+function waitForGameView() {
+  // The .game property is assigned by GameRenderer.createRenderer() when a game
+  // actually starts — not when the control-panel element appears in the DOM.
+  // The element exists in the lobby already, so we must keep polling until the
+  // user enters a game (could be minutes).
   const poll = setInterval(() => {
-    attempts++;
     const g = getGameView();
     if (g) {
       clearInterval(poll);
-      console.log("[OF-Companion] GameView found after " + attempts + "s, starting advisor.");
+      console.log("[OF-Companion] GameView found, starting advisor.");
       startAdvisorLoop();
-    } else if (attempts >= maxAttempts) {
-      clearInterval(poll);
-      console.log("[OF-Companion] GameView not available after " + maxAttempts + "s, advisor disabled.");
     }
-  }, 1000);
+  }, 2000);
 }
 
 function startAdvisorLoop() {
@@ -235,7 +224,7 @@ async function init() {
   document.addEventListener("keydown", handleHotkey);
   startLoop();
   cachedAdvisorHotkey = settings.advisorHotkey;
-  waitForGameView(settings);
+  waitForGameView();
 }
 
 init().catch((err) => console.error("[OF-Companion] Init failed:", err));

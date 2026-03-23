@@ -1086,27 +1086,15 @@
       }
     }
   }
-  function waitForGameView(settings) {
-    const game = getGameView();
-    if (game) {
-      console.log("[OF-Companion] GameView found, starting advisor.");
-      startAdvisorLoop();
-      return;
-    }
-    let attempts = 0;
-    const maxAttempts = 30;
+  function waitForGameView() {
     const poll = setInterval(() => {
-      attempts++;
       const g = getGameView();
       if (g) {
         clearInterval(poll);
-        console.log("[OF-Companion] GameView found after " + attempts + "s, starting advisor.");
+        console.log("[OF-Companion] GameView found, starting advisor.");
         startAdvisorLoop();
-      } else if (attempts >= maxAttempts) {
-        clearInterval(poll);
-        console.log("[OF-Companion] GameView not available after " + maxAttempts + "s, advisor disabled.");
       }
-    }, 1e3);
+    }, 2e3);
   }
   function startAdvisorLoop() {
     if (advisorIntervalId) return;
@@ -1149,7 +1137,7 @@
     document.addEventListener("keydown", handleHotkey);
     startLoop();
     cachedAdvisorHotkey = settings.advisorHotkey;
-    waitForGameView(settings);
+    waitForGameView();
   }
   init().catch((err) => console.error("[OF-Companion] Init failed:", err));
 })();
