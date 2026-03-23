@@ -43,25 +43,25 @@ export function getRecommendation(ratio, attackingTroops, current) {
   const isAttacking = attackingTroops > 0;
 
   if (ratio > 0.85) {
-    return { text: "Dringend angreifen! Wachstum fast 0.", urgency: "high", color: "#ef4444" };
+    return { text: "Attack now! Growth near zero.", urgency: "high", color: "#ef4444" };
   }
   if (ratio > 0.60) {
     return {
-      text: isAttacking ? "Gut – Angriff läuft, Truppen sinken." : "Über Optimum. Angriff starten!",
+      text: isAttacking ? "Good — attack running, troops dropping." : "Over optimum. Launch attack!",
       urgency: "medium", color: "#f97316",
     };
   }
   if (ratio > 0.46) {
-    return { text: "Leicht über Optimum. Guter Angriffszeitpunkt.", urgency: "medium", color: "#f59e0b" };
+    return { text: "Slightly over optimum. Good time to attack.", urgency: "medium", color: "#f59e0b" };
   }
   if (ratio >= 0.38) {
-    return { text: "Optimaler Bereich! Maximales Wachstum.", urgency: "low", color: "#22c55e" };
+    return { text: "Optimal range! Maximum growth.", urgency: "low", color: "#22c55e" };
   }
   if (ratio >= 0.20) {
     return {
-      text: isAttacking ? "Vorsicht – Truppen niedrig, Angriff bindet Ressourcen." : "Unter Optimum. Wachsen lassen.",
+      text: isAttacking ? "Caution — troops low, attack binding resources." : "Below optimum. Let troops grow.",
       urgency: "low", color: "#84cc16",
     };
   }
-  return { text: "Kritisch niedrig. Nicht angreifen!", urgency: "high", color: "#ef4444" };
+  return { text: "Critically low. Do not attack!", urgency: "high", color: "#ef4444" };
 }

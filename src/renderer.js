@@ -148,7 +148,7 @@ function buildPanelDOM() {
   root.appendChild(header);
 
   const body = el("div", "ofc-body");
-  body.appendChild(buildRow("Truppen", "troops"));
+  body.appendChild(buildRow("Troops", "troops"));
 
   const barTrack = el("div", "ofc-bar-track");
   const barFill = field("div", "ofc-bar-fill", "bar");
@@ -158,10 +158,10 @@ function buildPanelDOM() {
   barTrack.appendChild(el("div", "ofc-bar-marker"));
   body.appendChild(barTrack);
 
-  body.appendChild(buildRow("Wachstum", "growth"));
+  body.appendChild(buildRow("Growth", "growth"));
   body.appendChild(buildRow("Optimum", "optimal"));
-  body.appendChild(buildRow("Im Angriff", "attacking"));
-  body.appendChild(buildRow("Shield", "shield"));
+  body.appendChild(buildRow("Attacking", "attacking"));
+  body.appendChild(buildRow("Defense", "shield"));
   body.appendChild(field("div", "ofc-recommendation", "recommendation", "-"));
   root.appendChild(body);
 

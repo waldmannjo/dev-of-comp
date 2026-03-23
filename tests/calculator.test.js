@@ -99,12 +99,12 @@ describe("getRecommendation", () => {
   test("over optimal with active attack", () => {
     const rec = getRecommendation(0.70, 5000, 70000);
     expect(rec.urgency).toBe("medium");
-    expect(rec.text).toContain("Angriff");
+    expect(rec.text).toContain("attack");
   });
 
   test("under optimal with active attack", () => {
     const rec = getRecommendation(0.25, 5000, 25000);
-    expect(rec.text).toContain("Vorsicht");
+    expect(rec.text).toContain("Caution");
   });
 });
 
