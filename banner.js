@@ -7,9 +7,7 @@ export const banner = `// ==UserScript==
 // @match        https://openfront.io/*
 // @match        https://*.openfront.io/*
 // @icon         https://openfront.io/favicon.ico
-// @grant        GM_addStyle
-// @grant        GM_getValue
-// @grant        GM_setValue
+// @grant        none
 // @run-at       document-idle
 // @license      MIT
 // ==/UserScript==`;

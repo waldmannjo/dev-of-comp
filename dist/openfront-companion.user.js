@@ -7,10 +7,7 @@
 // @match        https://openfront.io/*
 // @match        https://*.openfront.io/*
 // @icon         https://openfront.io/favicon.ico
-// @grant        GM_addStyle
-// @grant        GM_getValue
-// @grant        GM_setValue
-// @grant        unsafeWindow
+// @grant        none
 // @run-at       document-idle
 // @license      MIT
 // ==/UserScript==
@@ -519,43 +516,16 @@
     MissileSilo: "Missile Silo",
     SAMLauncher: "SAM Launcher"
   };
-  function getCandidateDocuments() {
-    const docs = [];
-    if (typeof document !== "undefined") {
-      docs.push(document);
-    }
-    try {
-      if (typeof unsafeWindow !== "undefined" && unsafeWindow && unsafeWindow.document && unsafeWindow.document !== document) {
-        docs.push(unsafeWindow.document);
-      }
-    } catch {
-    }
-    return docs;
-  }
-  function getElementGame(el3) {
-    if (!el3) return null;
-    try {
-      if (el3.game) return el3.game;
-    } catch {
-    }
-    try {
-      if (el3.wrappedJSObject?.game) return el3.wrappedJSObject.game;
-    } catch {
-    }
-    return null;
-  }
   function getGameView() {
     if (cachedGameView) return cachedGameView;
-    for (const root of getCandidateDocuments()) {
-      for (const sel of GAME_ELEMENT_SELECTORS) {
-        try {
-          const game = getElementGame(root.querySelector(sel));
-          if (game) {
-            cachedGameView = game;
-            return cachedGameView;
-          }
-        } catch {
+    for (const sel of GAME_ELEMENT_SELECTORS) {
+      try {
+        const el3 = document.querySelector(sel);
+        if (el3 && el3.game) {
+          cachedGameView = el3.game;
+          return cachedGameView;
         }
+      } catch {
       }
     }
     return null;

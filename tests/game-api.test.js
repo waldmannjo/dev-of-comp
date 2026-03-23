@@ -71,25 +71,3 @@ describe("_extractPlayerData", () => {
   });
 });
 
-describe("getGameView", () => {
-  test("reads the game object from the page context document", () => {
-    const game = { myPlayer: () => null };
-    const pageElement = { game };
-
-    global.document = {
-      querySelector: () => null,
-    };
-    global.unsafeWindow = {
-      document: {
-        querySelector: () => pageElement,
-      },
-    };
-
-    resetGameViewCache();
-    expect(getGameView()).toBe(game);
-
-    delete global.document;
-    delete global.unsafeWindow;
-    resetGameViewCache();
-  });
-});

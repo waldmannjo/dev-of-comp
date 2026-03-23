@@ -15,55 +15,16 @@ const UNIT_TYPES = {
   SAMLauncher: "SAM Launcher",
 };
 
-function getCandidateDocuments() {
-  const docs = [];
-  if (typeof document !== "undefined") {
-    docs.push(document);
-  }
-  try {
-    if (
-      typeof unsafeWindow !== "undefined" &&
-      unsafeWindow &&
-      unsafeWindow.document &&
-      unsafeWindow.document !== document
-    ) {
-      docs.push(unsafeWindow.document);
-    }
-  } catch {
-    // Cross-context access can fail in userscript sandboxes.
-  }
-  return docs;
-}
-
-function getElementGame(el) {
-  if (!el) return null;
-  try {
-    if (el.game) return el.game;
-  } catch {
-    // ignore inaccessible cross-context property
-  }
-  try {
-    if (el.wrappedJSObject?.game) return el.wrappedJSObject.game;
-  } catch {
-    // Firefox userscript wrapper fallback
-  }
-  return null;
-}
-
 export function getGameView() {
   if (cachedGameView) return cachedGameView;
-  for (const root of getCandidateDocuments()) {
-    for (const sel of GAME_ELEMENT_SELECTORS) {
-      try {
-        const game = getElementGame(root.querySelector(sel));
-        if (game) {
-          cachedGameView = game;
-          return cachedGameView;
-        }
-      } catch {
-        /* skip */
+  for (const sel of GAME_ELEMENT_SELECTORS) {
+    try {
+      const el = document.querySelector(sel);
+      if (el && el.game) {
+        cachedGameView = el.game;
+        return cachedGameView;
       }
-    }
+    } catch { /* skip */ }
   }
   return null;
 }
