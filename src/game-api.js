@@ -61,11 +61,14 @@ export function getPlayerData(player) {
   } catch { return null; }
 }
 
+// The game API may return BigInt for numeric values — coerce to Number at the boundary.
+function num(v) { return typeof v === "bigint" ? Number(v) : (v ?? 0); }
+
 export function _extractPlayerData(player, myPlayer, game) {
-  const troops = player.troops();
-  const maxTroops = game.config().maxTroops(player);
-  const territory = player.numTilesOwned();
-  const totalLand = game.numLandTiles();
+  const troops = num(player.troops());
+  const maxTroops = num(game.config().maxTroops(player));
+  const territory = num(player.numTilesOwned());
+  const totalLand = num(game.numLandTiles());
 
   return {
     name: player.displayName(),
@@ -75,13 +78,13 @@ export function _extractPlayerData(player, myPlayer, game) {
     troopRatio: maxTroops > 0 ? troops / maxTroops : 0,
     territory,
     territoryPercent: totalLand > 0 ? (territory / totalLand) * 100 : 0,
-    gold: player.gold(),
+    gold: num(player.gold()),
     buildings: {
-      cities: player.totalUnitLevels(UNIT_TYPES.City),
-      factories: player.totalUnitLevels(UNIT_TYPES.Factory),
-      ports: player.totalUnitLevels(UNIT_TYPES.Port),
-      silos: player.totalUnitLevels(UNIT_TYPES.MissileSilo),
-      sams: player.totalUnitLevels(UNIT_TYPES.SAMLauncher),
+      cities: num(player.totalUnitLevels(UNIT_TYPES.City)),
+      factories: num(player.totalUnitLevels(UNIT_TYPES.Factory)),
+      ports: num(player.totalUnitLevels(UNIT_TYPES.Port)),
+      silos: num(player.totalUnitLevels(UNIT_TYPES.MissileSilo)),
+      sams: num(player.totalUnitLevels(UNIT_TYPES.SAMLauncher)),
     },
     outgoingAttacks: _sumAttacks(player.outgoingAttacks()),
     incomingAttacks: _sumAttacks(player.incomingAttacks()),
@@ -93,7 +96,7 @@ export function _extractPlayerData(player, myPlayer, game) {
 export function _sumAttacks(attacks) {
   let sum = 0;
   for (const a of attacks) {
-    if (!a.retreating) sum += a.troops;
+    if (!a.retreating) sum += num(a.troops);
   }
   return sum;
 }

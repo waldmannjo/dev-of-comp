@@ -20,10 +20,10 @@
     const match = str.match(/^([+-]?)(\d+(?:\.\d+)?)\s*([KkMm]?)$/);
     if (!match) return null;
     const sign = match[1] === "-" ? -1 : 1;
-    const num = parseFloat(match[2]);
+    const num2 = parseFloat(match[2]);
     const suffix = match[3].toUpperCase();
     const multiplier = suffix === "M" ? 1e6 : suffix === "K" ? 1e3 : 1;
-    return sign * Math.round(num * multiplier);
+    return sign * Math.round(num2 * multiplier);
   }
   function parseTroopText(currentStr, maxStr) {
     const current = parseNumber(currentStr);
@@ -560,11 +560,14 @@
       return null;
     }
   }
+  function num(v) {
+    return typeof v === "bigint" ? Number(v) : v ?? 0;
+  }
   function _extractPlayerData(player, myPlayer, game) {
-    const troops = player.troops();
-    const maxTroops = game.config().maxTroops(player);
-    const territory = player.numTilesOwned();
-    const totalLand = game.numLandTiles();
+    const troops = num(player.troops());
+    const maxTroops = num(game.config().maxTroops(player));
+    const territory = num(player.numTilesOwned());
+    const totalLand = num(game.numLandTiles());
     return {
       name: player.displayName(),
       type: String(player.type()),
@@ -573,13 +576,13 @@
       troopRatio: maxTroops > 0 ? troops / maxTroops : 0,
       territory,
       territoryPercent: totalLand > 0 ? territory / totalLand * 100 : 0,
-      gold: player.gold(),
+      gold: num(player.gold()),
       buildings: {
-        cities: player.totalUnitLevels(UNIT_TYPES.City),
-        factories: player.totalUnitLevels(UNIT_TYPES.Factory),
-        ports: player.totalUnitLevels(UNIT_TYPES.Port),
-        silos: player.totalUnitLevels(UNIT_TYPES.MissileSilo),
-        sams: player.totalUnitLevels(UNIT_TYPES.SAMLauncher)
+        cities: num(player.totalUnitLevels(UNIT_TYPES.City)),
+        factories: num(player.totalUnitLevels(UNIT_TYPES.Factory)),
+        ports: num(player.totalUnitLevels(UNIT_TYPES.Port)),
+        silos: num(player.totalUnitLevels(UNIT_TYPES.MissileSilo)),
+        sams: num(player.totalUnitLevels(UNIT_TYPES.SAMLauncher))
       },
       outgoingAttacks: _sumAttacks(player.outgoingAttacks()),
       incomingAttacks: _sumAttacks(player.incomingAttacks()),
@@ -590,7 +593,7 @@
   function _sumAttacks(attacks) {
     let sum = 0;
     for (const a of attacks) {
-      if (!a.retreating) sum += a.troops;
+      if (!a.retreating) sum += num(a.troops);
     }
     return sum;
   }
@@ -1066,8 +1069,8 @@
       return;
     }
     try {
-      const myTroops = me.troops();
-      const myMaxTroops = game.config().maxTroops(me);
+      const myTroops = Number(me.troops());
+      const myMaxTroops = Number(game.config().maxTroops(me));
       const myData = { troops: myTroops, maxTroops: myMaxTroops };
       const neighbors = await getBorderingPlayers();
       const enemyDataList = neighbors.map((p) => getPlayerData(p)).filter((d) => d !== null);

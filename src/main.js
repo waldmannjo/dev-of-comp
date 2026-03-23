@@ -138,8 +138,8 @@ async function advisorTick() {
   try {
     // Read own data directly — avoid routing through getPlayerData
     // which calls isFriendly(myPlayer) on self (undefined behavior)
-    const myTroops = me.troops();
-    const myMaxTroops = game.config().maxTroops(me);
+    const myTroops = Number(me.troops());
+    const myMaxTroops = Number(game.config().maxTroops(me));
     const myData = { troops: myTroops, maxTroops: myMaxTroops };
 
     const neighbors = await getBorderingPlayers();
