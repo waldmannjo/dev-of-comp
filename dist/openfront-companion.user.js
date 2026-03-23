@@ -709,7 +709,7 @@
         status: getStatus(enemy),
         ...rec
       };
-    }).filter((t) => t !== null).sort((a, b) => b.score - a.score).slice(0, 3);
+    }).filter((t) => t !== null).sort((a, b) => a.name.localeCompare(b.name));
     return {
       targets: scored,
       myTroops: myData.troops,

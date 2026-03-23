@@ -74,7 +74,7 @@ describe("scoreTarget", () => {
 });
 
 describe("getAdvisorData", () => {
-  test("returns sorted targets, top 3", () => {
+  test("returns alphabetically sorted targets, excludes allies", () => {
     const myData = makeMyData({ troops: 100000 });
     const enemies = [
       makePlayer({ name: "Weak", troops: 5000, troopRatio: 0.06 }),
@@ -85,9 +85,9 @@ describe("getAdvisorData", () => {
 
     const result = getAdvisorData(myData, enemies);
 
-    expect(result.targets.length).toBeLessThanOrEqual(3);
-    expect(result.targets[0].name).toBe("Weak");
     expect(result.targets.every(t => t.name !== "Ally")).toBe(true);
+    const names = result.targets.map(t => t.name);
+    expect(names).toEqual([...names].sort());
   });
 
   test("includes troop recommendation for each target", () => {

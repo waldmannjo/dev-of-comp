@@ -103,8 +103,7 @@ export function getAdvisorData(myData, enemyDataList) {
       };
     })
     .filter(t => t !== null)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return {
     targets: scored,
