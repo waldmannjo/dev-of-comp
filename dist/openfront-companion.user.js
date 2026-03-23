@@ -635,8 +635,8 @@
 
   // src/attack-advisor.js
   function getRating(score) {
-    if (score >= 70) return { label: "STRIKE", color: "#22c55e" };
-    if (score >= 40) return { label: "RISKY", color: "#f59e0b" };
+    if (score >= 60) return { label: "STRIKE", color: "#22c55e" };
+    if (score >= 35) return { label: "RISKY", color: "#f59e0b" };
     return { label: "AVOID", color: "#ef4444" };
   }
   function scoreTarget(myData, enemy) {
@@ -653,7 +653,8 @@
     strategic = Math.min(strategic, 30);
     const ratio = enemyDefending > 0 ? myData.troops / enemyDefending : 100;
     let feasibility = 0;
-    if (ratio >= 3) feasibility = 30;
+    if (ratio >= 5) feasibility = 40;
+    else if (ratio >= 3) feasibility = 30;
     else if (ratio >= 2) feasibility = 20;
     else if (ratio >= 1.5) feasibility = 10;
     let score = vulnerability + strategic + feasibility;

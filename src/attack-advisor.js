@@ -2,8 +2,8 @@
 import { optimalTroops, growthPerSecond } from "./calculator.js";
 
 function getRating(score) {
-  if (score >= 70) return { label: "STRIKE", color: "#22c55e" };
-  if (score >= 40) return { label: "RISKY", color: "#f59e0b" };
+  if (score >= 60) return { label: "STRIKE", color: "#22c55e" };
+  if (score >= 35) return { label: "RISKY", color: "#f59e0b" };
   return { label: "AVOID", color: "#ef4444" };
 }
 
@@ -25,10 +25,11 @@ export function scoreTarget(myData, enemy) {
   if (enemy.territoryPercent > 15) strategic += 5;
   strategic = Math.min(strategic, 30);
 
-  // Feasibility (0-30)
+  // Feasibility (0-40) — scales with troop advantage
   const ratio = enemyDefending > 0 ? myData.troops / enemyDefending : 100;
   let feasibility = 0;
-  if (ratio >= 3.0) feasibility = 30;
+  if (ratio >= 5.0) feasibility = 40;
+  else if (ratio >= 3.0) feasibility = 30;
   else if (ratio >= 2.0) feasibility = 20;
   else if (ratio >= 1.5) feasibility = 10;
 
