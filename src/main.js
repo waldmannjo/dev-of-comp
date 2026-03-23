@@ -155,6 +155,34 @@ async function advisorTick() {
   }
 }
 
+function waitForGameView(settings) {
+  const game = getGameView();
+  if (game) {
+    console.log("[OF-Companion] GameView found, starting advisor.");
+    createAdvisorPanel(settings);
+    startAdvisorLoop();
+    return;
+  }
+  // GameView not ready yet — the .game property is assigned after the renderer
+  // initializes, which can be after the control-panel element exists in DOM.
+  // Poll every 1s for up to 30s.
+  let attempts = 0;
+  const maxAttempts = 30;
+  const poll = setInterval(() => {
+    attempts++;
+    const g = getGameView();
+    if (g) {
+      clearInterval(poll);
+      console.log("[OF-Companion] GameView found after " + attempts + "s, starting advisor.");
+      createAdvisorPanel(settings);
+      startAdvisorLoop();
+    } else if (attempts >= maxAttempts) {
+      clearInterval(poll);
+      console.log("[OF-Companion] GameView not available after " + maxAttempts + "s, advisor disabled.");
+    }
+  }, 1000);
+}
+
 function startAdvisorLoop() {
   if (advisorIntervalId) return;
   advisorTick();
@@ -199,13 +227,7 @@ async function init() {
   document.addEventListener("keydown", handleHotkey);
   startLoop();
   cachedAdvisorHotkey = settings.advisorHotkey;
-  const game = getGameView();
-  if (game) {
-    createAdvisorPanel(settings);
-    startAdvisorLoop();
-  } else {
-    console.log("[OF-Companion] GameView not available, advisor disabled.");
-  }
+  waitForGameView(settings);
 }
 
 init().catch((err) => console.error("[OF-Companion] Init failed:", err));
