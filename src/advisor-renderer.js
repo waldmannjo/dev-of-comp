@@ -138,6 +138,7 @@ function buildPanel() {
 
   const body = el("div", "ofc-adv-body");
   body.dataset.field = "advisor-body";
+  body.appendChild(el("div", "ofc-adv-empty", "Waiting for game data..."));
   root.appendChild(body);
 
   const minView = el("div", "ofc-adv-minimized");
