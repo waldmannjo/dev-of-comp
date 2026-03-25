@@ -674,10 +674,30 @@
     if (hasIn) return "under attack";
     return "idle";
   }
-  function computeRecommendation(myData, enemy) {
+  function computeThreatLevel(myData, allEnemies, targetName) {
+    const others = allEnemies.filter(
+      (e) => e.isAlive && !e.isFriendly && e.name !== targetName
+    );
+    let threat = Math.min(1, others.length / 5);
+    if ((myData.incomingAttacks || 0) > 0) threat += 0.2;
+    const strongestOther = others.reduce((max, e) => Math.max(max, e.troops), 0);
+    if (myData.troops > 0 && strongestOther > myData.troops * 0.5) threat += 0.15;
+    return Math.min(1, threat);
+  }
+  function computeRecommendation(myData, enemy, allEnemies) {
     const enemyDefending = Math.max(1, enemy.troops - enemy.outgoingAttacks);
-    const comfortable = enemyDefending * 2.5;
-    let recommended = Math.min(comfortable, myData.troops * 0.95);
+    const ratio = myData.troops / enemyDefending;
+    let multiplier;
+    if (ratio > 10) multiplier = 1.3;
+    else if (ratio > 5) multiplier = 1.8;
+    else if (ratio > 3) multiplier = 2;
+    else if (ratio > 2) multiplier = 2.2;
+    else multiplier = 2.5;
+    const needed = enemyDefending * multiplier;
+    const threatLevel = computeThreatLevel(myData, allEnemies, enemy.name);
+    const minReserve = myData.maxTroops * (0.15 + threatLevel * 0.25);
+    const budget = Math.max(0, myData.troops - minReserve);
+    let recommended = Math.min(needed, budget, myData.troops * 0.95);
     recommended = Math.max(0, Math.round(recommended));
     const attackRatio = myData.troops > 0 ? Math.round(recommended / myData.troops * 100) : 0;
     const advantage = enemyDefending > 0 ? (recommended / enemyDefending).toFixed(1) + ":1" : "---";
@@ -688,14 +708,14 @@
       const rate = growthPerSecond(troopsAfter, myData.maxTroops);
       recoveryTime = rate > 0 ? (optimal - troopsAfter) / rate : Infinity;
     }
-    return { recommended, attackRatio, advantage, recoveryTime };
+    return { recommended, attackRatio, advantage, recoveryTime, threatLevel };
   }
   function getAdvisorData(myData, enemyDataList) {
     const scored = enemyDataList.map((enemy) => {
       const { score } = scoreTarget(myData, enemy);
       if (score < 0) return null;
       const rating = getRating(score);
-      const rec = computeRecommendation(myData, enemy);
+      const rec = computeRecommendation(myData, enemy, enemyDataList);
       return {
         name: enemy.name,
         score,
@@ -1073,7 +1093,8 @@
     try {
       const myTroops = Number(me.troops()) / 10;
       const myMaxTroops = Number(game.config().maxTroops(me)) / 10;
-      const myData = { troops: myTroops, maxTroops: myMaxTroops };
+      const myIncoming = _sumAttacks(me.incomingAttacks()) / 10;
+      const myData = { troops: myTroops, maxTroops: myMaxTroops, incomingAttacks: myIncoming };
       const neighbors = await getBorderingPlayers();
       const enemyDataList = neighbors.map((p) => getPlayerData(p)).filter((d) => d !== null);
       const result = getAdvisorData(myData, enemyDataList);

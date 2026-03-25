@@ -1,6 +1,6 @@
 // tests/attack-advisor.test.js
 import { describe, test, expect } from "vitest";
-import { scoreTarget, getAdvisorData } from "../src/attack-advisor.js";
+import { scoreTarget, getAdvisorData, computeThreatLevel } from "../src/attack-advisor.js";
 
 function makePlayer(overrides = {}) {
   return {
@@ -25,6 +25,7 @@ function makeMyData(overrides = {}) {
   return {
     troops: 60000,
     maxTroops: 120000,
+    incomingAttacks: 0,
     ...overrides,
   };
 }
@@ -70,6 +71,58 @@ describe("scoreTarget", () => {
     const small = scoreTarget(makeMyData(), makePlayer({ territoryPercent: 2 }));
     const big = scoreTarget(makeMyData(), makePlayer({ territoryPercent: 20 }));
     expect(big.score).toBeGreaterThan(small.score);
+  });
+});
+
+describe("computeThreatLevel", () => {
+  test("returns 0 when no other enemies exist", () => {
+    const myData = makeMyData();
+    const target = makePlayer({ name: "Target" });
+    const threat = computeThreatLevel(myData, [target], "Target");
+    expect(threat).toBe(0);
+  });
+
+  test("increases with more active enemies", () => {
+    const myData = makeMyData();
+    const target = makePlayer({ name: "Target" });
+    const oneEnemy = [target, makePlayer({ name: "Other1" })];
+    const threeEnemies = [
+      target,
+      makePlayer({ name: "Other1" }),
+      makePlayer({ name: "Other2" }),
+      makePlayer({ name: "Other3" }),
+    ];
+    const t1 = computeThreatLevel(myData, oneEnemy, "Target");
+    const t3 = computeThreatLevel(myData, threeEnemies, "Target");
+    expect(t3).toBeGreaterThan(t1);
+  });
+
+  test("adds bonus when under attack", () => {
+    const calm = makeMyData({ incomingAttacks: 0 });
+    const attacked = makeMyData({ incomingAttacks: 5000 });
+    const enemies = [makePlayer({ name: "Target" }), makePlayer({ name: "Other" })];
+    const tCalm = computeThreatLevel(calm, enemies, "Target");
+    const tAttacked = computeThreatLevel(attacked, enemies, "Target");
+    expect(tAttacked).toBeGreaterThan(tCalm);
+  });
+
+  test("adds bonus when a strong other enemy exists", () => {
+    const myData = makeMyData({ troops: 60000 });
+    const target = makePlayer({ name: "Target" });
+    const weakOther = makePlayer({ name: "Other", troops: 10000 });
+    const strongOther = makePlayer({ name: "Other", troops: 40000 });
+    const tWeak = computeThreatLevel(myData, [target, weakOther], "Target");
+    const tStrong = computeThreatLevel(myData, [target, strongOther], "Target");
+    expect(tStrong).toBeGreaterThan(tWeak);
+  });
+
+  test("caps at 1.0", () => {
+    const myData = makeMyData({ troops: 10000, incomingAttacks: 5000 });
+    const enemies = Array.from({ length: 8 }, (_, i) =>
+      makePlayer({ name: `E${i}`, troops: 50000 })
+    );
+    const threat = computeThreatLevel(myData, enemies, "E0");
+    expect(threat).toBeLessThanOrEqual(1.0);
   });
 });
 
@@ -129,5 +182,40 @@ describe("getAdvisorData", () => {
     const result = getAdvisorData(makeMyData(), enemies);
     const statuses = result.targets.map(t => t.status);
     expect(statuses).toContain("idle");
+  });
+
+  test("dynamic multiplier: sends less % against very weak enemies", () => {
+    const myData = makeMyData({ troops: 500000, maxTroops: 500000 });
+    const weakEnemy = makePlayer({ name: "Weak", troops: 5000, troopRatio: 0.06 });
+    const result = getAdvisorData(myData, [weakEnemy]);
+    const target = result.targets[0];
+    // 500k vs 5k = 100:1 ratio → 1.3× multiplier → ~6500 recommended
+    // attackRatio should be very low (around 1-2%), not 2.5% as before
+    expect(target.attackRatio).toBeLessThanOrEqual(5);
+  });
+
+  test("reserves more troops when multiple enemies exist", () => {
+    const myData = makeMyData({ troops: 60000, maxTroops: 120000 });
+    const target = makePlayer({ name: "Target", troops: 20000, troopRatio: 0.25 });
+
+    const alone = getAdvisorData(myData, [target]);
+    const crowded = getAdvisorData(myData, [
+      target,
+      makePlayer({ name: "Other1", troops: 40000 }),
+      makePlayer({ name: "Other2", troops: 35000 }),
+      makePlayer({ name: "Other3", troops: 30000 }),
+    ]);
+
+    const recAlone = alone.targets.find(t => t.name === "Target").recommended;
+    const recCrowded = crowded.targets.find(t => t.name === "Target").recommended;
+    expect(recCrowded).toBeLessThan(recAlone);
+  });
+
+  test("includes threatLevel in recommendation", () => {
+    const myData = makeMyData({ troops: 60000, maxTroops: 120000 });
+    const enemies = [makePlayer({ troops: 10000, troopRatio: 0.125 })];
+    const result = getAdvisorData(myData, enemies);
+    expect(result.targets[0].threatLevel).toBeGreaterThanOrEqual(0);
+    expect(result.targets[0].threatLevel).toBeLessThanOrEqual(1);
   });
 });

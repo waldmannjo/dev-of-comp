@@ -55,10 +55,40 @@ function getStatus(enemy) {
   return "idle";
 }
 
-function computeRecommendation(myData, enemy) {
+export function computeThreatLevel(myData, allEnemies, targetName) {
+  const others = allEnemies.filter(
+    e => e.isAlive && !e.isFriendly && e.name !== targetName
+  );
+  // Base: more active enemies = more threat (0..1)
+  let threat = Math.min(1, others.length / 5);
+  // Bonus if we're currently under attack
+  if ((myData.incomingAttacks || 0) > 0) threat += 0.2;
+  // Bonus if strongest other enemy has >50% of our troops
+  const strongestOther = others.reduce((max, e) => Math.max(max, e.troops), 0);
+  if (myData.troops > 0 && strongestOther > myData.troops * 0.5) threat += 0.15;
+  return Math.min(1, threat);
+}
+
+function computeRecommendation(myData, enemy, allEnemies) {
   const enemyDefending = Math.max(1, enemy.troops - enemy.outgoingAttacks);
-  const comfortable = enemyDefending * 2.5;
-  let recommended = Math.min(comfortable, myData.troops * 0.95);
+
+  // Dynamic multiplier: less overkill when we massively outgun the target
+  const ratio = myData.troops / enemyDefending;
+  let multiplier;
+  if (ratio > 10) multiplier = 1.3;
+  else if (ratio > 5) multiplier = 1.8;
+  else if (ratio > 3) multiplier = 2.0;
+  else if (ratio > 2) multiplier = 2.2;
+  else multiplier = 2.5;
+
+  const needed = enemyDefending * multiplier;
+
+  // Threat-aware reserve: keep 15%-40% of maxTroops depending on danger
+  const threatLevel = computeThreatLevel(myData, allEnemies, enemy.name);
+  const minReserve = myData.maxTroops * (0.15 + threatLevel * 0.25);
+  const budget = Math.max(0, myData.troops - minReserve);
+
+  let recommended = Math.min(needed, budget, myData.troops * 0.95);
   recommended = Math.max(0, Math.round(recommended));
 
   const attackRatio = myData.troops > 0
@@ -77,7 +107,7 @@ function computeRecommendation(myData, enemy) {
     recoveryTime = rate > 0 ? (optimal - troopsAfter) / rate : Infinity;
   }
 
-  return { recommended, attackRatio, advantage, recoveryTime };
+  return { recommended, attackRatio, advantage, recoveryTime, threatLevel };
 }
 
 export function getAdvisorData(myData, enemyDataList) {
@@ -86,7 +116,7 @@ export function getAdvisorData(myData, enemyDataList) {
       const { score } = scoreTarget(myData, enemy);
       if (score < 0) return null;
       const rating = getRating(score);
-      const rec = computeRecommendation(myData, enemy);
+      const rec = computeRecommendation(myData, enemy, enemyDataList);
       return {
         name: enemy.name,
         score,
