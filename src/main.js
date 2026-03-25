@@ -20,6 +20,7 @@ import {
   getPlayerData,
   getBorderingPlayers,
   invalidateBorderCache,
+  _sumAttacks,
 } from "./game-api.js";
 import { getAdvisorData } from "./attack-advisor.js";
 import {
@@ -140,7 +141,8 @@ async function advisorTick() {
     // which calls isFriendly(myPlayer) on self (undefined behavior)
     const myTroops = Number(me.troops()) / 10;
     const myMaxTroops = Number(game.config().maxTroops(me)) / 10;
-    const myData = { troops: myTroops, maxTroops: myMaxTroops };
+    const myIncoming = _sumAttacks(me.incomingAttacks()) / 10;
+    const myData = { troops: myTroops, maxTroops: myMaxTroops, incomingAttacks: myIncoming };
 
     const neighbors = await getBorderingPlayers();
     const enemyDataList = neighbors
